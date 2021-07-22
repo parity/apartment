@@ -18,7 +18,9 @@ module Apartment
         database = @processor.call(request)
 
         if database
-          Apartment::Tenant.switch(database) { @app.call(env) }
+          # We are passing true here as we want schema based lookup.
+          # And not by changing schema path
+          Apartment::Tenant.switch(database, true) { @app.call(env) }
         else
           @app.call(env)
         end

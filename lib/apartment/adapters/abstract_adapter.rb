@@ -21,7 +21,7 @@ module Apartment
         run_callbacks :create do
           create_tenant(tenant)
 
-          switch(tenant) do
+          switch(tenant, false) do
             import_database_schema
 
             # Seed data if appropriate
@@ -64,11 +64,11 @@ module Apartment
       #
       #   @param {String} tenant name
       #
-      def switch!(tenant = nil)
+      def switch!(tenant = nil, use_schema_for_lookup = true)
         run_callbacks :switch do
           return reset if tenant.nil?
 
-          connect_to_new(tenant).tap do
+          connect_to_new(tenant, use_schema_for_lookup).tap do
             Apartment.connection.clear_query_cache
           end
         end
@@ -78,14 +78,14 @@ module Apartment
       #
       #   @param {String?} tenant to connect to
       #
-      def switch(tenant = nil)
+      def switch(tenant = nil, use_schema_for_lookup=true)
         begin
           previous_tenant = current
-          switch!(tenant)
+          switch!(tenant, use_schema_for_lookup)
           yield
 
         ensure
-          switch!(previous_tenant) rescue reset
+          switch!(previous_tenant, use_schema_for_lookup) rescue reset
         end
       end
 
@@ -93,7 +93,7 @@ module Apartment
       #
       def each(tenants = Apartment.tenant_names)
         tenants.each do |tenant|
-          switch(tenant){ yield tenant }
+          switch(tenant, false){ yield tenant }
         end
       end
 
