@@ -113,7 +113,7 @@ module Apartment
           (ActiveRecord::Base.descendants - Apartment.excluded_models.map(&:safe_constantize)).compact.each do |model|
             if model.table_name 
               table_name = model.table_name.split('.', 2).last 
-          	  model.table_name = "#{@current}.#{table_name}"
+          	  model.table_name = "public.#{table_name}"
             end
           end
         else       
