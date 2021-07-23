@@ -35,9 +35,18 @@ module Apartment
       #
       #   @return {String} default schema search path
       #
-      def reset
+      def reset(use_schema_for_lookup=true)
         @current = default_tenant
-        Apartment.connection.schema_search_path = full_search_path
+        if use_schema_for_lookup 
+          (ActiveRecord::Base.descendants - Apartment.excluded_models.map(&:safe_constantize)).compact.each do |model|
+            if model.table_name 
+              table_name = model.table_name.split('.', 2).last 
+          	  model.table_name = "#{@current}.#{table_name}"
+            end
+          end
+        else
+          Apartment.connection.schema_search_path = full_search_path
+        end
       end
 
       def current
@@ -62,7 +71,7 @@ module Apartment
       #   Set schema search path to new schema
       #
       def connect_to_new(tenant = nil, use_schema_for_lookup=true)
-        return reset if tenant.nil?
+        return reset(use_schema_for_lookup) if tenant.nil?
         raise ActiveRecord::StatementInvalid.new("Could not find schema #{tenant}") unless Apartment.connection.schema_exists?(tenant.to_s)
 
         @current = tenant.to_s

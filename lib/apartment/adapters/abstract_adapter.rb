@@ -66,7 +66,7 @@ module Apartment
       #
       def switch!(tenant = nil, use_schema_for_lookup = true)
         run_callbacks :switch do
-          return reset if tenant.nil?
+          return reset(use_schema_for_lookup) if tenant.nil?
 
           connect_to_new(tenant, use_schema_for_lookup).tap do
             Apartment.connection.clear_query_cache
@@ -85,7 +85,7 @@ module Apartment
           yield
 
         ensure
-          switch!(previous_tenant, use_schema_for_lookup) rescue reset
+          switch!(previous_tenant, use_schema_for_lookup) rescue reset(use_schema_for_lookup)
         end
       end
 
@@ -108,8 +108,17 @@ module Apartment
 
       #   Reset the tenant connection to the default
       #
-      def reset
-        Apartment.establish_connection @config
+      def reset(use_schema_for_lookup=true)
+        if use_schema_for_lookup
+          (ActiveRecord::Base.descendants - Apartment.excluded_models.map(&:safe_constantize)).compact.each do |model|
+            if model.table_name 
+              table_name = model.table_name.split('.', 2).last 
+          	  model.table_name = "#{@current}.#{table_name}"
+            end
+          end
+        else       
+          Apartment.establish_connection @config
+        end
       end
 
       #   Load the rails seed file into the db
